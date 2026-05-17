@@ -14,12 +14,23 @@ export class FFmpegLoadError extends Error {
     this.name = "FFmpegLoadError";
   }
 }
-
-export async function loadFFmpeg(signal?: AbortSignal): Promise<FFmpeg> {
-  if (ffmpegInstance?.loaded) return ffmpegInstance;
+export async function loadFFmpeg(signal?: AbortSignal, 
+  onProgress?: (percent: number) => void): Promise<FFmpeg> {
+  if (ffmpegInstance?.loaded) {
+  onProgress?.(100);
+  return ffmpegInstance;
+  }
 
   const ffmpeg = ffmpegInstance ?? new FFmpeg();
   ffmpegInstance = ffmpeg;
+
+  const handleProgress = ({
+    progress,
+  }: {
+    progress: number;
+  }) => {
+    onProgress?.(Math.round(progress * 100));
+  };
 
   try {
     const isSimdSupported = await simd();
@@ -29,7 +40,7 @@ export async function loadFFmpeg(signal?: AbortSignal): Promise<FFmpeg> {
       coreURL: await toBlobURL(`${CORE_BASE_URL}/${coreName}.js`, "text/javascript"),
       wasmURL: await toBlobURL(`${CORE_BASE_URL}/${coreName}.wasm`, "application/wasm"),
     }, { signal });
-
+    onProgress?.(100);
     return ffmpeg;
   } catch (err) {
     if (ffmpegInstance === ffmpeg) {
@@ -65,6 +76,10 @@ function buildVideoFilter(recipe: EditRecipe, targetW: number, targetH: number):
   if (recipe.rotate === 90) filters.push("transpose=1");
   else if (recipe.rotate === 180) filters.push("transpose=1,transpose=1");
   else if (recipe.rotate === 270) filters.push("transpose=2");
+
+  if (recipe.stabilization) {
+    filters.push("deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16");
+  }
 
   if (recipe.framing === "fit") {
     filters.push(
@@ -227,6 +242,7 @@ export async function exportVideo(
         ...(vf ? ["-vf", vf] : []),
         ...(recipe.keepAudio ? (af ? ["-af", af] : []) : ["-an"]),
         "-c:v", "libvpx-vp9",
+        "-b:v", "0",
         "-crf", String(recipe.quality),
         ...(recipe.keepAudio ? ["-c:a", "libopus"] : []),
         fallbackOutputName,
