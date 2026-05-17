@@ -44,6 +44,7 @@ export function terminateFFmpeg() {
   ffmpegInstance = null;
 }
 
+/** Generates a unique session ID used to isolate FFmpeg file names across concurrent exports. */
 function buildSessionId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -51,6 +52,7 @@ function buildSessionId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+/** Builds the FFmpeg -vf filter chain string from the current recipe settings. */
 function buildVideoFilter(recipe: EditRecipe, targetW: number, targetH: number): string {
   const filters: string[] = [];
 
@@ -81,7 +83,7 @@ function buildVideoFilter(recipe: EditRecipe, targetW: number, targetH: number):
     filters.push(`setpts=${pts}*PTS`);
   }
 
-  // ✅ Fixed: No 'any' - using optional chaining with defaults
+  //  Fixed: No 'any' - using optional chaining with defaults
   filters.push(
     `eq=brightness=${recipe.brightness ?? 0}:contrast=${recipe.contrast ?? 1}:saturation=${recipe.saturation ?? 1}`
   );
@@ -146,7 +148,7 @@ export async function exportVideo(
   const ext = file.name.split(".").pop() ?? "mp4";
   const inputName = `input_${sessionId}.${ext}`;
 
-  // ✅ Fixed: Proper type for getOutputConfig
+  //  Fixed: Proper type for getOutputConfig
   const getOutputConfig = (format: OutputFormat) => {
     switch (format) {
       case "webm":
@@ -270,6 +272,7 @@ export async function exportVideo(
   }
 }
 
+/** Formats a byte count as a human-readable string (KB or MB). */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
