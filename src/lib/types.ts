@@ -36,3 +36,17 @@ export const MAX_FILE_SIZE =
 
 export const WARNING_FILE_SIZE =
   500 * 1024 * 1024; // 500MB
+
+export interface BackgroundMusicOptions {
+  file?: File;
+  loopMusic?: boolean;
+  musicVolume?: number;        // ✓ This exists
+  originalAudioVolume?: number; // ✓ This exists
+}
+
+export interface ImageOverlayOptions {
+  file?: File;
+  size?: number;               // ✓ This exists
+  opacity?: number;            // ✓ This exists
+  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right"; // ✓ This exists
+}
