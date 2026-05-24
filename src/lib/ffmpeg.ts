@@ -212,27 +212,27 @@ function buildArguments(
       videoOut = "[vbase]";
     }
 
-    if (hasOverlay) {
-      const scaledW = overlayOptions!.size;
-      const alpha = (overlayOptions!.opacity / 100).toFixed(2);
+    if (hasOverlay && overlayOptions) {
+      const scaledW = overlayOptions.size ?? 100;
+      const alpha = ((overlayOptions.opacity ?? 100) / 100).toFixed(2);
       const posMap: Record<string, string> = {
         "top-left":     "20:20",
         "top-right":    "W-w-20:20",
         "bottom-left":  "20:H-h-20",
         "bottom-right": "W-w-20:H-h-20",
       };
-      const pos = posMap[overlayOptions!.position] ?? "W-w-20:H-h-20";
+      const pos = overlayOptions.position ? posMap[overlayOptions.position] : "W-w-20:H-h-20";
+      const finalPos = pos ?? "W-w-20:H-h-20";
       filterParts.push(`[${overlayIdx}:v]scale=${scaledW}:-2,format=rgba,colorchannelmixer=aa=${alpha}[logo]`);
-      filterParts.push(`${videoOut}[logo]overlay=${pos}[vout]`);
+      filterParts.push(`${videoOut}[logo]overlay=${finalPos}[vout]`);
       videoOut = "[vout]";
     }
 
     let audioOut = "";
-    if (shouldKeepAudio) {
-      if (hasMusicTrack) {
-        const musicVol = (musicOptions!.musicVolume / 100).toFixed(2);
+          if (hasMusicTrack && musicOptions) {
+        const musicVol = ((musicOptions.musicVolume ?? 100) / 100).toFixed(2);
         if (hasOriginalAudio) {
-          const origVol  = (musicOptions!.originalAudioVolume / 100).toFixed(2);
+          const origVol = ((musicOptions.originalAudioVolume ?? 100) / 100).toFixed(2);
           const origChain = afParts.length > 0
             ? `[0:a]${afParts.join(",")},volume=${origVol}[orig]`
             : `[0:a]volume=${origVol}[orig]`;
@@ -244,10 +244,7 @@ function buildArguments(
           filterParts.push(`[${musicIdx}:a]volume=${musicVol}[aout]`);
           audioOut = "[aout]";
         }
-      } else if (hasOriginalAudio && af) {
-        filterParts.push(`[0:a]${af}[aout]`);
-        audioOut = "[aout]";
-      }
+      
     }
 
     if (filterParts.length > 0) {
