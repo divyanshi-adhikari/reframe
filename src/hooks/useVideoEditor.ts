@@ -9,7 +9,7 @@ import { suggestPreset } from "@/lib/presetSuggestion";
 import { validateDimensions, getDownscaledDimensions } from "@/utils/video-validation";
 
 const DEFAULT_TITLE = "Reframe — Resize, trim, and export videos in your browser";
-  const STORAGE_KEY = "reframe:recipe";
+const STORAGE_KEY = "reframe:recipe";
 
 export function extractMetadata(file: File): Promise<{ width: number; height: number; duration: number }> {
   return new Promise((resolve, reject) => {
@@ -51,11 +51,8 @@ function verifyMagicBytes(file: File): Promise<boolean> {
       const hex = Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
       const ascii = String.fromCharCode(...arr);
 
-      // WebM / MKV
       if (hex.startsWith("1A45DFA3")) resolve(true);
-      // AVI
       else if (hex.startsWith("52494646")) resolve(true);
-      // MP4 / MOV (checks for 'ftyp' in first 12 bytes)
       else if (ascii.substring(0, 12).includes("ftyp")) resolve(true);
       else resolve(false);
     };
@@ -66,56 +63,19 @@ function verifyMagicBytes(file: File): Promise<boolean> {
 
 function validateRecipe(recipe: EditRecipe, duration: number ): string | null {
   const validations: Array<[boolean, string]> = [
-    [
-      recipe.trimStart < 0,
-      "Trim start time cannot be less than 0 seconds.",
-    ],
-    [
-      recipe.trimEnd !== null && duration > 0 && recipe.trimEnd > duration,
-      `Trim end time cannot exceed the video duration (${Math.floor(duration)}s).`,
-    ],
-    [
-      recipe.trimEnd !== null 
-        ? recipe.trimStart >= recipe.trimEnd 
-        : (duration > 0 && recipe.trimStart >= duration),
-      "Trim start time must be earlier than the end time.",
-    ],
-    [
-      recipe.preset === "custom" && (Number.isNaN(recipe.customWidth) || recipe.customWidth < 16 || recipe.customWidth > 7680),
-      "Width must be between 16px and 7680px.",
-    ],
-    [
-      recipe.preset === "custom" && (Number.isNaN(recipe.customHeight) || recipe.customHeight < 16 || recipe.customHeight > 7680),
-      "Height must be between 16px and 7680px.",
-    ],
-    [
-      !(SPEED_STEPS as readonly number[]).includes(recipe.speed),
-      "Please select a valid playback speed.",
-    ],
-    [
-      recipe.quality < 18 || recipe.quality > 30,
-      "Quality must be between 18 and 30.",
-    ],
-    [
-      recipe.brightness < -1 || recipe.brightness > 1,
-      "Brightness must be between -1 and 1.",
-    ],
-
-    [
-      recipe.contrast < 0 || recipe.contrast > 2,
-      "Contrast must be between 0 and 2.",
-    ],
-
-    [
-      recipe.saturation < 0 || recipe.saturation > 3,
-      "Saturation must be between 0 and 3.",
-    ],
+    [recipe.trimStart < 0, "Trim start time cannot be less than 0 seconds."],
+    [recipe.trimEnd !== null && duration > 0 && recipe.trimEnd > duration, `Trim end time cannot exceed the video duration (${Math.floor(duration)}s).`],
+    [recipe.trimEnd !== null ? recipe.trimStart >= recipe.trimEnd : (duration > 0 && recipe.trimStart >= duration), "Trim start time must be earlier than the end time."],
+    [recipe.preset === "custom" && (Number.isNaN(recipe.customWidth) || recipe.customWidth < 16 || recipe.customWidth > 7680), "Width must be between 16px and 7680px."],
+    [recipe.preset === "custom" && (Number.isNaN(recipe.customHeight) || recipe.customHeight < 16 || recipe.customHeight > 7680), "Height must be between 16px and 7680px."],
+    [!(SPEED_STEPS as readonly number[]).includes(recipe.speed), "Please select a valid playback speed."],
+    [recipe.quality < 18 || recipe.quality > 30, "Quality must be between 18 and 30."],
+    [recipe.brightness < -1 || recipe.brightness > 1, "Brightness must be between -1 and 1."],
+    [recipe.contrast < 0 || recipe.contrast > 2, "Contrast must be between 0 and 2."],
+    [recipe.saturation < 0 || recipe.saturation > 3, "Saturation must be between 0 and 3."],
   ];
 
-  return (
-    validations.find(([condition]) => condition)?.[1] ??
-    null
-  );
+  return validations.find(([condition]) => condition)?.[1] ?? null;
 }
 
 function encodeRecipe(recipe: EditRecipe): string {
@@ -174,16 +134,17 @@ export function useVideoEditor() {
   const [overlaySize, setOverlaySize] = useState(150);
   const [overlayOpacity, setOverlayOpacity] = useState(100);
   const [currentTime, setCurrentTime] = useState(0);
- const updateRecipe = useCallback((patch: Partial<EditRecipe>) => {
-  setRecipe((prev) => {
-    const next = { ...prev, ...patch };
-    // GIF has no audio — force keepAudio off
-    if (next.format === "gif") {
-      next.keepAudio = false;
-    }
-    return next;
-  });
-}, []);
+  
+  const updateRecipe = useCallback((patch: Partial<EditRecipe>) => {
+    setRecipe((prev) => {
+      const next = { ...prev, ...patch };
+      if (next.format === "gif") {
+        next.keepAudio = false;
+      }
+      return next;
+    });
+  }, []);
+  
   const isValidValue = (key: keyof EditRecipe, val: any): boolean => {
     switch (key) {
       case "preset":
@@ -253,7 +214,6 @@ export function useVideoEditor() {
           }));
         }
       } else {
-        // Try full recipe restore first (new key)
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
           if (raw) {
@@ -264,10 +224,9 @@ export function useVideoEditor() {
             }
           }
         } catch {
-          // ignore parse/validation errors and fall back to legacy
+          // ignore
         }
 
-        // Legacy partial settings (keep for backward compatibility)
         const saved = localStorage.getItem("reframe-settings");
         if (saved) {
           const parsed = JSON.parse(saved);
@@ -333,7 +292,6 @@ export function useVideoEditor() {
     }
   }, [recipe.preset, recipe.quality, recipe.speed, recipe.customWidth, recipe.customHeight]);
 
-  // Persist the full recipe (debounced)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const timer = setTimeout(() => {
@@ -351,6 +309,7 @@ export function useVideoEditor() {
     return getPresetById(suggestPreset(videoMetadata.width, videoMetadata.height)) ?? null;
   }, [videoMetadata]);
 
+  // 🔥 CHANGE 1: Modified handleFileSelect with video preview fix
   const handleFileSelect = useCallback(async (selectedFile: File) => {
     setResult(null);
     setStatus("idle");
@@ -364,7 +323,6 @@ export function useVideoEditor() {
 
     setFileError("");
 
-    // LAYER 0: Size check
     if (selectedFile.size > MAX_FILE_SIZE) {
       setError(`Validation Failed: File too large. Maximum size is 2GB.`);
       setStatus("error");
@@ -396,7 +354,6 @@ export function useVideoEditor() {
     try {
       const { width, height, duration: dur } = await extractMetadata(selectedFile);
 
-      // Layer 5: Resolution check
       const dimensionCheck = validateDimensions(width, height);
       if (dimensionCheck === "blocked") {
         const suggested = getDownscaledDimensions(width, height);
@@ -411,6 +368,18 @@ export function useVideoEditor() {
       setDuration(dur);
       setVideoMetadata({ width, height, duration: dur });
       setFile(selectedFile);
+
+      // 🔥 CHANGE 2: Force video preview to update immediately
+      const videoUrl = URL.createObjectURL(selectedFile);
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          if (videoRef.current.src && videoRef.current.src.startsWith('blob:')) {
+            URL.revokeObjectURL(videoRef.current.src);
+          }
+          videoRef.current.src = videoUrl;
+          videoRef.current.load();
+        }
+      });
 
       if (dimensionCheck === "warning") {
         console.warn(`[Reframe] High resolution video detected (${width}×${height}). Export may be slow.`);
@@ -431,6 +400,23 @@ export function useVideoEditor() {
       setStatus("error");
     }
   }, []);
+
+  // 🔥 CHANGE 3: Add cleanup effect for video URL
+  useEffect(() => {
+    let currentUrl: string | null = null;
+    
+    if (file && videoRef.current) {
+      currentUrl = URL.createObjectURL(file);
+      videoRef.current.src = currentUrl;
+      videoRef.current.load();
+    }
+    
+    return () => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+    };
+  }, [file]);
 
   const handleExport = useCallback(async () => {
     if (!file) return;
@@ -527,7 +513,6 @@ export function useVideoEditor() {
     status,
   ]);
 
-
   useEffect(() => {
     if (status === "exporting") {
       document.title = `Exporting ${progress}% | Reframe`;
@@ -580,7 +565,6 @@ export function useVideoEditor() {
     };
   }, [file, status, handleExport]);
 
-  // M key: toggle audio mute — only when a file is loaded and focus isn't in a text field
   useEffect(() => {
     if (!file) return;
 
@@ -639,7 +623,6 @@ export function useVideoEditor() {
     setExportStartedAt(null);
   }, []);
 
-
   const reset = useCallback(() => {
     if (result?.blobUrl) URL.revokeObjectURL(result.blobUrl);
     setFile(null);
@@ -658,26 +641,27 @@ export function useVideoEditor() {
     }
   }, [result]);
 
-
   useEffect(() => {
     localStorage.setItem("soundOnCompletion", String(recipe.soundOnCompletion));
   }, [recipe.soundOnCompletion]);
+  
   const seekTo = useCallback((time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
   }, []);
+  
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     video.addEventListener("timeupdate", handleTimeUpdate);
     return () => video.removeEventListener("timeupdate", handleTimeUpdate);
-  },[]);
+  }, []);
 
   const toggleSound = useCallback(() => {
-  updateRecipe({ soundOnCompletion: !recipe.soundOnCompletion });
-}, [recipe.soundOnCompletion, updateRecipe]);
+    updateRecipe({ soundOnCompletion: !recipe.soundOnCompletion });
+  }, [recipe.soundOnCompletion, updateRecipe]);
 
   return {
     file,

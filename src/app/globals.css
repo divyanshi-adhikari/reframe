@@ -144,3 +144,22 @@ textarea:focus {
   box-shadow: 0 0 0 3px var(--accent-muted);
   border-radius: var(--radius);
 }
+
+/* Gradient animation for the sample button */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x 3s ease infinite;
+}
+
+.bg-size-200 {
+  background-size: 200% 200%;
+}

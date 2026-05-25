@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Film, FolderOpen } from "lucide-react";
+import { Film, FolderOpen, Sparkles } from "lucide-react";
 import LottiePlayer from "./LottiePlayer";
 import uploadAnim from "@/lib/lottie/upload.json";
 import { cn, formatBytes, formatDuration } from "@/lib/utils";
@@ -26,6 +26,7 @@ export default function FileUpload({
   const [pageDragging, setPageDragging] = useState(false);
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
+  const [isLoadingSample, setIsLoadingSample] = useState(false);
   const dragCounterRef = useRef(0);
 
   // ── Keyboard shortcut Ctrl+O ──────────────────────────
@@ -41,7 +42,6 @@ export default function FileUpload({
   }, []);
 
   // ── Page-level drag overlay ───────────────────────────
-  // Uses a counter so nested dragenter/dragleave don't flicker
   useEffect(() => {
     const onDragEnter = (e: DragEvent) => {
       e.preventDefault();
@@ -56,7 +56,7 @@ export default function FileUpload({
     };
 
     const onDragOver = (e: DragEvent) => {
-      e.preventDefault(); // required to allow drop
+      e.preventDefault();
     };
 
     const onDrop = (e: DragEvent) => {
@@ -116,6 +116,29 @@ export default function FileUpload({
 
     onFileSelect(file);
   }, [onFileSelect]);
+
+  // ── Load Sample Video ──────────────
+  const loadSampleVideo = useCallback(async () => {
+    setIsLoadingSample(true);
+    setError("");
+    
+    try {
+      const response = await fetch("/demo.mp4");
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch sample video");
+      }
+      
+      const blob = await response.blob();
+      const file = new File([blob], "demo.mp4", { type: "video/mp4" });
+      handleFile(file);
+    } catch (err) {
+      setError("Failed to load sample video. Please check your connection.");
+      console.error("Sample video error:", err);
+    } finally {
+      setIsLoadingSample(false);
+    }
+  }, [handleFile]);
 
   // ── Drop zone (inner) handler ─────────────────────────
   const handleDrop = (e: React.DragEvent) => {
@@ -239,6 +262,28 @@ export default function FileUpload({
         MP4 / MOV / AVI / WebM
       </div>
 
+      <button
+        type="button"
+        aria-label="Load sample demo video"
+        onClick={(e) => {
+          e.stopPropagation();
+          loadSampleVideo();
+        }}
+        disabled={isLoadingSample}
+        className={cn(
+          "mt-2 inline-flex items-center gap-2",
+          "rounded-lg border border-[var(--border)]",
+          "bg-[var(--surface)] px-4 py-2",
+          "text-sm font-medium text-[var(--text)]",
+          "transition-all duration-200",
+          "hover:border-film-400 hover:bg-film-50/40",
+          "disabled:opacity-50 disabled:cursor-not-allowed"
+        )}
+      >
+        <Sparkles size={16} />
+        {isLoadingSample ? "Loading Sample..." : "Try Sample Video"}
+      </button>
+
       <p className="text-xs text-[var(--muted)] text-center">
         Supports: MP4, MOV, AVI, MKV, WebM, and most video formats up to 2GB
       </p>
@@ -274,7 +319,6 @@ export default function FileUpload({
             "transition-all duration-200 pointer-events-none"
           )}
         >
-          {/* Animated ring */}
           <div className="relative flex items-center justify-center">
             <div className="absolute w-32 h-32 rounded-full border-4 border-film-500/40 animate-ping" />
             <div className="w-24 h-24 rounded-full bg-film-500/10 border-2 border-film-500 flex items-center justify-center">
