@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Poppins:wght@400;700&family=Montserrat:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -162,4 +164,9 @@ textarea:focus {
 
 .bg-size-200 {
   background-size: 200% 200%;
+detail > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
 }
